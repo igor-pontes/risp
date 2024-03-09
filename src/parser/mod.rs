@@ -19,7 +19,7 @@ impl Display for FieldType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Op {
     Add,
     Sub,
@@ -174,13 +174,17 @@ where
     }
 
     while let Some((index, chr)) = symbols.next() {
-        if let (FieldType::Unit, true, true) = (field_t, exp.len() != 0, chr != ' ') { panic!("Error: excessive number of expressions at {index}.")} 
+        if let (Op::Empty, true, true) = (op, exp.len() != 0, chr != ' ') { panic!("Error: excessive number of expressions at {index}.")} 
         match chr {
             '(' => {
                 if let Some((_, '(')) = symbols.peek() {
-                    exp.push(parse_exp(symbols, str, Op::Empty, field_t));
+                    let s_exp = parse_exp(symbols, str, Op::Empty, field_t);
+                    if s_exp.1 != field_t { panic!("Error: Sub-expression type does not match. Expected '{field_t}', got '{}' at {index}", s_exp.1) } 
+                    exp.push(s_exp);
                 } else {
-                    exp.push(parse_op(symbols, str, Some(field_t)));
+                    let s_exp = parse_op(symbols, str, Some(field_t));
+                    if s_exp.1 != field_t { panic!("Error: Sub-expression type does not match. Expected '{field_t}', got '{}' at {index}", s_exp.1) } 
+                    exp.push(s_exp);
                 }
                 match symbols.next() {
                     Some((_, ')')) => (),
@@ -192,8 +196,8 @@ where
                 let start = index;
                 let Some((end, number_t)) = process_number(symbols, start) else { panic!("Error parsing: expected a number at {}.", start) };
                 match (field_t, number_t) {
-                    (FieldType::Integer(_), FieldType::Float(_)) => panic!("Error: expected {field_t}, got {number_t} type at position {start}."),
-                    (FieldType::Float(_), FieldType::Integer(_)) => panic!("Error: expected {field_t}, got {number_t} type at position {start}."),
+                    (FieldType::Integer(_), FieldType::Float(_)) => panic!("Error: expected '{field_t}', got '{number_t}' type at position {start}."),
+                    (FieldType::Float(_), FieldType::Integer(_)) => panic!("Error: expected '{field_t}', got '{number_t}' type at position {start}."),
                     _ => (),
                 }
                 let number = (Number(&str[start..=end]), number_t);
