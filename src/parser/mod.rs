@@ -35,6 +35,7 @@ where
             err: format!("Expected LParen, got {token:?}"),
         });
     };
+
     let mut objs = vec![];
     while let Some(token) = tokens.peek() {
         match token {
@@ -49,7 +50,10 @@ where
         }
         tokens.next();
     };
-    Ok(Object::List(objs))
+
+    Err(ParseError {
+        err: format!("Insufficient tokens.")
+    })
 }
 
 pub fn tokenize(str: &str) -> Vec<Token> {
