@@ -1,5 +1,7 @@
 use core::iter::Peekable;
 
+// If we use &str we won't be able to use an Iterator while parsing the string.
+// (problems with mutability)
 #[derive(Debug, PartialEq)]
 pub enum Token {
     Integer(isize),
@@ -9,15 +11,15 @@ pub enum Token {
     Rparen
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Object {
     Integer(isize),
     Bool(bool),
     Float(f64),
-    Unit,
+    Void,
     Symbol(String),
-    Lambda(Vec<String>, Vec<Object>),
     List(Vec<Object>),
+    Lambda(Vec<String>, Vec<Object>),
 }
 
 #[derive(Debug)]
@@ -35,13 +37,19 @@ where
             err: format!("Expected LParen, got {token:?}"),
         });
     };
-
     let mut objs = vec![];
     while let Some(token) = tokens.peek() {
         match token {
             Token::Integer(n) => objs.push(Object::Integer(*n)),
             Token::Float(n) => objs.push(Object::Float(*n)),
-            Token::Symbol(str) => objs.push(Object::Symbol(str.clone())),
+            Token::Symbol(str) => {
+                let obj = match str.as_str() {
+                    "true" => Object::Bool(true),
+                    "false" => Object::Bool(false),
+                    _ => Object::Symbol(str.clone())
+                };
+                objs.push(obj)
+            },
             Token::Lparen => {
                 let obj = parse(tokens)?;
                 objs.push(obj);
@@ -50,7 +58,6 @@ where
         }
         tokens.next();
     };
-
     Err(ParseError {
         err: format!("Insufficient tokens.")
     })
@@ -85,12 +92,8 @@ where
     I: Iterator<Item = (usize, char)>
 {
     let mut end = index;
-    let mut is_float = false;
     while let Some((_, chr)) = symbols.peek() {
         if chr.is_alphanumeric() || chr == &'.' || chr == &'_' { 
-            if chr == &'.' && !is_float { 
-                is_float = !is_float;
-            }
             symbols.next();
             end += 1;
         } else { 
