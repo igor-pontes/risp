@@ -81,8 +81,8 @@ fn eval_list(objs: Vec<Object>, env: EnvType) -> Result<Object, EvalError> {
         },
         "list" => {
             let mut new_list = vec![];
-            for obj in objs {
-                let result = eval(obj, env.clone())?;
+            for obj in &objs[1..] {
+                let result = eval(obj.clone(), env.clone())?;
                 match result {
                     Object::Void => {},
                     _ => new_list.push(result),
@@ -282,7 +282,7 @@ fn eval_function_call(symbol: &str, objs: &[Object], env: EnvType) -> Result<Obj
         let (param, value) = (params.next(), values.next());
         // As long as I use param before this match expression I can use peek no problem.
         match (param, value) {
-            (Some(param), Some(value)) => { n_env.defs.insert(param.clone(), value.clone()); },
+            (Some(param), Some(value)) => { n_env.defs.insert(param.clone(), eval(value.clone(), env.clone())?); },
             (Some(param), None) => return Err(EvalError {
                 err: String::from(format!("Expected parameter '{param}', got empty."))
             }),
